@@ -1,0 +1,7 @@
+{
+  "version": "2.1",
+  "versionCode": 3,
+  "downloadUrl": "https://safefileku.com/download/9r7FwWAi0OiXPqUj",
+  "notes": "Update PakelStore v2.1:\n🎯 Auto-login Chat ID\n🔔 Update notifier otomatis\n📱 UI katalog baru (pagination)\n🏆 Fitur leaderboard top buyer\n🔒 Fix bug race condition /addpaket\n💳 QRIS & voucher lebih stabil\n📬 Inbox notif (order, BC, flashsale)\n🔐 Security Guard v2 (5 lapis)\n⭐ Testimoni real-time campur\n🎨 Dark/Light mode toggle\n🎁 Sertifikat digital pembelian\n💬 Live chat widget APK\n⚡ Countdown slot terbatas\n🛡️ Anti-scam banner",
+  "forceUpdate": false
+}
