@@ -31,8 +31,8 @@ bot = telebot.TeleBot(TOKEN, num_threads=6)
 
 try:
     bot.remove_webhook()
-except Exception:
-    pass
+except Exception as _e:
+    log_error("ignored", _e)
 
 # ==== FLASK API sekarang di apk_api.py ====
 # Gak perlu Flask app di sini
@@ -55,7 +55,7 @@ INFO_SAWERIA = "https://saweria.co/PakelMlbb"
 # =====================================================================================
 #  KONFIGURASI QRIS
 # =====================================================================================
-QRIS_IMAGE_URL = "https://pakelmlbb.github.io/ml.hackvip/qris.jpg"
+QRIS_IMAGE_URL = "https://pakelstore.github.io/PakelStore/qris.jpg"
 
 WIB = timezone(timedelta(hours=7))
 
@@ -328,8 +328,8 @@ def get_user_last_tier(chat_id):
                 parts = line.strip().split('|')
                 if len(parts) == 2 and parts[0] == str(chat_id):
                     return parts[1]
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
     return None
 
 def set_user_last_tier(chat_id, tier_label):
@@ -374,8 +374,8 @@ def check_tier_upgrade(chat_id):
                     "Terima kasih sudah jadi pelanggan setia! 🙏",
                     parse_mode="HTML"
                 )
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
     except Exception as e:
         log_error("check_tier_upgrade", e)
 
@@ -405,29 +405,29 @@ def cleanup_old_logs():
         now_epoch = int(time.time())
 
         # 1. Hapus marker reminder lama (>7 hari)
-        for fname in os.listdir("."):
+        for fname in os.listdir(DATA_DIR):
             if fname.startswith(".reminded_"):
-                if os.path.isfile(fname):
-                    file_age = now_epoch - int(os.path.getmtime(fname))
+                if os.path.isfile(os.path.join(DATA_DIR, fname)):
+                    file_age = now_epoch - int(os.path.getmtime(os.path.join(DATA_DIR, fname)))
                     if file_age > 7 * 86400:
                         try:
-                            os.remove(fname)
-                        except Exception:
-                            pass
+                            os.remove(os.path.join(DATA_DIR, fname))
+                        except Exception as _e:
+                            log_error("ignored", _e)
 
         # 2. Hapus pending_review lama (>7 hari)
-        for fname in os.listdir("."):
+        for fname in os.listdir(DATA_DIR):
             if fname.startswith("pending_review_"):
-                if os.path.isfile(fname):
-                    file_age = now_epoch - int(os.path.getmtime(fname))
+                if os.path.isfile(os.path.join(DATA_DIR, fname)):
+                    file_age = now_epoch - int(os.path.getmtime(os.path.join(DATA_DIR, fname)))
                     if file_age > 7 * 86400:
                         try:
-                            os.remove(fname)
-                        except Exception:
-                            pass
+                            os.remove(os.path.join(DATA_DIR, fname))
+                        except Exception as _e:
+                            log_error("ignored", _e)
 
         # 3. Hapus backup lama (>50 file di backup_data)
-        backup_dir = "backup_data"
+        backup_dir = os.path.join(DATA_DIR, "backup_data")
         if os.path.exists(backup_dir) and os.path.isdir(backup_dir):
             all_files = []
             for fname in os.listdir(backup_dir):
@@ -439,8 +439,8 @@ def cleanup_old_logs():
                 for _, fpath in all_files[:-50]:
                     try:
                         os.remove(fpath)
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        log_error("ignored", _e)
 
         # 4. Hapus point_log lama (>90 hari)
         if os.path.exists(F_POINTLOG):
@@ -463,8 +463,8 @@ def cleanup_old_logs():
                 if len(new_lines) < len(lines):
                     with open(F_POINTLOG, "w", encoding="utf-8") as f:
                         f.writelines(new_lines)
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
     except Exception as e:
         log_error("cleanup_old_logs", e)
 
@@ -502,8 +502,8 @@ def clear_flashsale():
     try:
         if os.path.exists(F_FLASHSALE):
             os.remove(F_FLASHSALE)
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
 
 def broadcast_flashsale(diskon, durasi_jam):
     try:
@@ -527,15 +527,15 @@ def broadcast_flashsale(diskon, durasi_jam):
                              disable_web_page_preview=True)
             success += 1
             time.sleep(0.05)
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
 
     try:
         bot.send_message(ADMIN_TELEGRAM_ID,
                          f"📢 Broadcast Flash Sale selesai. Sukses: {success} user",
                          parse_mode="HTML")
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
 
 
 # FIX v13: Notif User Baru Join
@@ -573,7 +573,7 @@ def notify_admin_order_will_expire():
     """Cek order pending yang sisa < 5 menit, kirim notif ke admin (1x per order)."""
     try:
         now_epoch = int(datetime.now(WIB).timestamp())
-        reminded_file = "admin_expired_reminded.txt"
+        reminded_file = os.path.join(DATA_DIR, "admin_expired_reminded.txt")
 
         # Baca log remind
         reminded = set()
@@ -636,8 +636,8 @@ def notify_admin_order_will_expire():
                 if len(lines) > 500:
                     with open(reminded_file, "w", encoding="utf-8") as f:
                         f.write("\n".join(lines[-500:]) + "\n")
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
 
     except Exception as e:
         log_error("notify_admin_order_will_expire", e)
@@ -675,7 +675,7 @@ def remind_expiring_user_vouchers():
         # Cek voucher publik yang user redeem
         all_vouchers = _read_all_vouchers()
         now_ts = int(time.time())
-        reminded_file = "voucher_reminded.txt"
+        reminded_file = os.path.join(DATA_DIR, "voucher_reminded.txt")
 
         # Baca log remind
         reminded = set()
@@ -713,8 +713,8 @@ def remind_expiring_user_vouchers():
                                     parse_mode="HTML"
                                 )
                                 new_reminded.append(key)
-                            except Exception:
-                                pass
+                            except Exception as _e:
+                                log_error("ignored", _e)
 
         # Simpan log remind
         if new_reminded:
@@ -858,6 +858,14 @@ INFO TOKO:
 - Sistem poin: tiap transaksi dapet poin, bisa ditukar paket"""
 
 
+def _faq_reply(txt):
+    low = txt.lower()
+    for k, v in FAQ_RESPONSES.items():
+        if k in low:
+            return v
+    return "Maaf Kak, pertanyaannya belum bisa dijawab otomatis. Silakan hubungi admin " + ADMIN_USERNAME + " ya \U0001F64F"
+
+
 def ai_cs_reply(chat_id, user_message, user_name="Kak"):
     """Panggil Groq API buat jawab natural, BUKAN template."""
     if not AI_ENABLED:
@@ -899,8 +907,8 @@ def log_suspicious(chat_id, username, tipe, detail):
         now_str = datetime.now(WIB).strftime('%d-%m-%Y %H:%M:%S')
         with open(F_SUSPICIOUS, "a", encoding="utf-8") as f:
             f.write(f"{now_str} | {chat_id} | @{username or '-'} | {tipe} | {detail}\n")
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
     try:
         counters = {}
         if os.path.exists(F_SUSPICIOUS_COUNT):
@@ -930,8 +938,8 @@ def log_suspicious(chat_id, username, tipe, detail):
                     f"⚠️ User otomatis di-BANNED.",
                     parse_mode="HTML"
                 )
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
     except Exception as e:
         log_error("log_suspicious", e)
 
@@ -987,20 +995,20 @@ def verify_checksums():
 
 def auto_backup_all_files():
     try:
-        backup_dir = "backup_data"
+        backup_dir = os.path.join(DATA_DIR, "backup_data")
         os.makedirs(backup_dir, exist_ok=True)
         timestamp = datetime.now(WIB).strftime('%Y%m%d_%H%M%S')
         files_to_backup = [F_ORDERS, F_USERS, F_POINTS, F_VOUCHERS, F_USER_VOUCHER, F_STOCKS, F_REFERRALS, F_COUPONS]
         for fname in files_to_backup:
             if os.path.exists(fname):
-                shutil.copy2(fname, os.path.join(backup_dir, f"{timestamp}_{fname}"))
+                shutil.copy2(fname, os.path.join(backup_dir, f"{timestamp}_{os.path.basename(fname)}"))
         all_backups = sorted([f for f in os.listdir(backup_dir) if f.endswith('.txt')])
         if len(all_backups) > 50:
             for old in all_backups[:-50]:
                 try:
                     os.remove(os.path.join(backup_dir, old))
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
     except Exception as e:
         log_error("auto_backup_all_files", e)
 
@@ -1062,8 +1070,8 @@ def _safe_lock(name):
     lock_path = os.path.join(DATA_DIR, "." + name + ".lock")
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
     fd = open(lock_path, "w", encoding="utf-8")
     try:
         fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
@@ -1071,12 +1079,12 @@ def _safe_lock(name):
     finally:
         try:
             fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         try:
             fd.close()
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
 
 
 def _atomic_add_custom_paket(kode, data):
@@ -1106,8 +1114,8 @@ def _atomic_add_custom_paket(kode, data):
         try:
             if os.path.exists(F_CUSTOM_PAKET):
                 shutil.copy2(F_CUSTOM_PAKET, F_CUSTOM_PAKET + ".bak")
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         custom[kode] = data
         try:
             rows = []
@@ -1244,6 +1252,16 @@ def format_stock_label(stok):
         return f"📦 Stok: <b>{stok} unit</b>"
 
 def get_paket_code_by_name(nama_paket):
+    try:
+        for _k, _v in get_all_paket_combined().items():
+            if _v["nama"] == nama_paket:
+                return _k
+    except Exception as _e:
+        log_error("get_paket_code_by_name", _e)
+    return _get_paket_code_by_name_default(nama_paket)
+
+
+def _get_paket_code_by_name_default(nama_paket):
     for code, data in MASTER_PAKET.items():
         if data[0] == nama_paket:
             return code
@@ -1419,8 +1437,8 @@ def user_has_voucher(chat_id, kode):
                         kode_tersimpan = parts[1].replace("VOUCHER_", "")
                         if kode_tersimpan == kode_up:
                             return True
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
     return False
 
 def save_user_voucher(chat_id, kode, diskon):
@@ -1457,8 +1475,8 @@ def get_user_voucher_diskon(chat_id):
                             return kode, int(parts[2])
                         except ValueError:
                             return None, 0
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
     return None, 0
 
 def consume_user_voucher(chat_id):
@@ -1493,8 +1511,8 @@ def get_user_lucky_diskon(chat_id):
                             return int(parts[1].replace("DISKON", ""))
                         except ValueError:
                             return 0
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
     return 0
 
 def consume_user_lucky_diskon(chat_id):
@@ -1542,8 +1560,8 @@ def save_user(chat_id):
                     args=(int(chat_id_str), user_info),
                     daemon=True
                 ).start()
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
         try:
             last_seen = {}
             if os.path.exists(F_LASTSEEN):
@@ -1556,8 +1574,8 @@ def save_user(chat_id):
             with open(F_LASTSEEN, "w", encoding="utf-8") as f:
                 for uid, ts in last_seen.items():
                     f.write(f"{uid}|{ts}\n")
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
     except Exception as e:
         log_error("save_user", e)
 
@@ -1648,8 +1666,8 @@ def set_user_points(chat_id, poin_baru, alasan="Edit manual admin"):
                 now = datetime.now(WIB).strftime('%d-%m-%Y %H:%M:%S')
                 with open(F_POINTLOG, "a", encoding="utf-8") as f:
                     f.write(f"{chat_id}|{now}|SET={poin_baru}|{alasan}\n")
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
             return int(poin_baru)
         except Exception as e:
             log_error("set_user_points", e)
@@ -1714,6 +1732,17 @@ def save_user_review(chat_id, rating, text_review):
     except Exception as e:
         log_error("save_user_review", e)
 
+def _new_unique_resi():
+    existing = set()
+    for p in _read_all_orders():
+        existing.add(p[6].strip().upper())
+    for _ in range(50):
+        r = "PKL-MLBB-" + str(random.randint(10000, 99999))
+        if r not in existing:
+            return r
+    return "PKL-MLBB-" + str(int(time.time()))[-7:]
+
+
 def save_order(chat_id, paket_nama, harga, resi, payment_method="TRANSFER", point_cost=0, admin_msg_id=0):
     try:
         now = datetime.now(WIB)
@@ -1725,8 +1754,9 @@ def save_order(chat_id, paket_nama, harga, resi, payment_method="TRANSFER", poin
         hari_str = days_indo.get(now.strftime('%a'), now.strftime('%a'))
         order_line = (f"{chat_id}|{tanggal_str}|{hari_str}|{jam_str}|{paket_nama}|{harga}|"
                       f"{resi}|PENDING|{timestamp_epoch}|{payment_method}|{point_cost}|{admin_msg_id}\n")
-        with open(F_ORDERS, "a", encoding="utf-8") as f:
-            f.write(order_line)
+        with orders_lock:
+            with open(F_ORDERS, "a", encoding="utf-8") as f:
+                f.write(order_line)
     except Exception as e:
         log_error("save_order", e)
 
@@ -1780,13 +1810,13 @@ def update_order_status_by_resi(resi_target, status_baru):
                     if status_baru == "BERHASIL":
                         set_user_coupon_status(target_chat_id, "USED")
                         try:
-                            _write_testimoni_real(target_chat_id, target_paket_nama, target_paket_harga if 'target_paket_harga' in dir() else "", target_payment)
-                        except Exception:
-                            pass
+                            threading.Thread(target=_write_testimoni_real, args=(target_chat_id, target_paket_nama, target_paket_harga, target_payment), daemon=True).start()
+                        except Exception as _e:
+                            log_error("ignored", _e)
                         try:
                             _write_inbox(target_chat_id, "order_acc", "🎉 Pesanan di-ACC!", "Paket " + str(target_paket_nama) + " - " + str(target_paket_harga))
-                        except Exception:
-                            pass
+                        except Exception as _e:
+                            log_error("ignored", _e)
                         if target_payment != "POIN":
                             _, multiplier, _ = get_user_tier(target_chat_id)
                             bonus = int(10 * multiplier)
@@ -1795,24 +1825,24 @@ def update_order_status_by_resi(resi_target, status_baru):
                         if paket_code:
                             reduce_stock_specific(paket_code, 1)
                         try:
-                            _apply_referral_bonus_if_eligible_helper(target_chat_id)
-                        except Exception:
-                            pass
-                        check_tier_upgrade(target_chat_id)
+                            threading.Thread(target=_apply_referral_bonus_if_eligible_helper, args=(target_chat_id,), daemon=True).start()
+                        except Exception as _e:
+                            log_error("ignored", _e)
+                        threading.Thread(target=check_tier_upgrade, args=(target_chat_id,), daemon=True).start()
                     elif status_baru in ["DITOLAK", "EXPIRED", "CANCELLED"]:
                         set_user_coupon_status(target_chat_id, "AVAILABLE")
                         try:
                             _tipe_map = {"DITOLAK": "order_reject", "EXPIRED": "order_expired", "CANCELLED": "order_cancel"}
                             _msg_map = {"DITOLAK": "❌ Pesanan ditolak. Hubungi admin.", "EXPIRED": "⏰ Pesanan expired. Order ulang ya.", "CANCELLED": "🚫 Pesanan dibatalkan."}
                             _write_inbox(target_chat_id, _tipe_map.get(status_baru, "order_reject"), "Status Pesanan: " + status_baru, _msg_map.get(status_baru, ""))
-                        except Exception:
-                            pass
+                        except Exception as _e:
+                            log_error("ignored", _e)
                     try:
-                        marker = f".reminded_{resi_target}"
+                        marker = os.path.join(DATA_DIR, f".reminded_{resi_target}")
                         if os.path.exists(marker):
                             os.remove(marker)
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        log_error("ignored", _e)
                 return True
         except Exception as e:
             log_error("update_order_status_by_resi", e)
@@ -1939,8 +1969,8 @@ def _apply_referral_bonus_if_eligible_helper(new_buyer_chat_id):
                         f"\U0001F3B0 Hasil Gacha Bonus: <b>+{bonus_poin} Poin</b> masuk ke saldo loyalitasmu!",
                         parse_mode="HTML"
                     )
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
         except FileNotFoundError:
             pass
         except Exception as e:
@@ -2045,8 +2075,8 @@ def _get_all_paket_for_fake():
                     paket_list.append((p['nama'], harga_str, str(p['poin']) + " Poin"))
                 except Exception:
                     continue
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         # Dari override (kalau ada harga/poin diubah)
         try:
             ov = read_paket_override()
@@ -2056,8 +2086,8 @@ def _get_all_paket_for_fake():
                         new_hs = "Rp " + format(vals['harga'], ",").replace(",", ".")
                         paket_list[i] = (nm, new_hs, str(vals['poin']) + " Poin")
                         break
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
     except Exception as e:
         log_error("_get_all_paket_for_fake", e)
     return paket_list if paket_list else [
@@ -2104,8 +2134,8 @@ def _write_testimoni_grup(text, nama=None, paket=None, harga=None):
                 if len(all_l) > 500:
                     with open(F_TESTIMONI_GRUP, "w", encoding="utf-8") as f:
                         f.writelines(all_l[-300:])
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
     except Exception as e:
         log_error("_write_testimoni_grup", e)
 
@@ -2198,8 +2228,8 @@ def broadcast_voucher_baru(kode, diskon, max_pakai, durasi_jam):
             f"👥 Total user: {len(set(users))}",
             parse_mode="HTML"
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
 
 # =====================================================================================
 #  BAGIAN 5: BACKGROUND THREADS
@@ -2219,7 +2249,7 @@ def payment_reminder_loop():
                 if status == "PENDING":
                     sisa = TRANSAKSI_TIMEOUT_DETIK - (now_epoch - epoch)
                     if PAYMENT_REMINDER_SEBELUM_DETIK - 30 <= sisa <= PAYMENT_REMINDER_SEBELUM_DETIK:
-                        marker_file = f".reminded_{resi}"
+                        marker_file = os.path.join(DATA_DIR, f".reminded_{resi}")
                         if not os.path.exists(marker_file):
                             try:
                                 bot.send_message(
@@ -2253,8 +2283,8 @@ def timeout_dan_reminder_loop():
                         bot.send_message(chat_id,
                                          f"❌ <b>PESANAN EXPIRED</b> (Resi <code>{resi}</code>)\nWaktu 15 menit habis.",
                                          parse_mode="HTML")
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        log_error("ignored", _e)
         except Exception as e:
             log_error("timeout_dan_reminder_loop", e)
         time.sleep(30)
@@ -2316,8 +2346,8 @@ def background_auto_broadcast():
                                      text=f"📢 <b>PENGUMUMAN OTOMATIS</b>\n\n{pesan_final}",
                                      parse_mode="HTML", disable_web_page_preview=True)
                     time.sleep(0.05)
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
         except Exception as e:
             print(f"[AUTO-BROADCAST ERROR]: {e}")
             time.sleep(300)
@@ -2531,7 +2561,7 @@ def _kirim_poin_referral(chat_id, message_id, l='id'):
         f"✅ Bonus referral sudah cair: <b>{bonus_cair}</b>\n\n"
         f"🔗 <b>Link Referral Pribadimu:</b>\n<code>{link}</code>\n\n"
         "🎰 <b>Sistem Gacha Bonus Referral:</b>\n"
-        "• +2 Poin (45%)\n• +3 Poin (35%)\n• +4 Poin (15%)\n• +5 Poin (5%)\n\n"
+        "• +1 Poin (60%)\n• +2 Poin (30%)\n• +3 Poin (10%)\n\n"
         "💡 <i>Ajak teman pakai link ini, makin banyak yang belanja makin besar peluang gacha bonusnya!</i>"
     )
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -3214,8 +3244,8 @@ def cmd_flashsale(message):
     ).start()
     try:
         _write_inbox_all_users("flashsale", "⚡ FLASH SALE " + str(diskon) + "%", "Diskon " + str(diskon) + "% semua paket berlaku " + str(durasi_jam) + " jam!")
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
 
 
 @bot.message_handler(commands=['buatvoucher'])
@@ -3585,8 +3615,8 @@ def admin_add_points(message):
                         if uname.lower() == target_username.lower():
                             target_chat_id = int(uid)
                             break
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        log_error("ignored", _e)
     except FileNotFoundError:
         pass
     if not target_chat_id:
@@ -3601,8 +3631,8 @@ def admin_add_points(message):
             bot.send_message(target_chat_id,
                              f"🎁 <b>ADMIN MENAMBAHKAN POIN!</b>\n\n+{jumlah_tambah} Poin\nTotal: <b>{total_pasti} Poin</b>",
                              parse_mode="HTML")
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
     except Exception:
         bot.reply_to(message, "Gagal menambahkan poin.")
 
@@ -3626,12 +3656,12 @@ def broadcast_message(message):
             bot.send_message(chat_id, f"📢 <b>PENGUMUMAN RESMI</b>\n\n{pesan_bc}", parse_mode="HTML")
             success += 1
             time.sleep(0.05)
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
     try:
         _write_inbox_all_users("bc", "📢 Pengumuman Resmi", pesan_bc[:250])
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
     bot.send_message(message.chat.id, f"✅ Broadcast selesai. Berhasil: {success}")
 
 @bot.message_handler(commands=['bcs'])
@@ -3657,8 +3687,8 @@ def broadcast_buyers_only(message):
             bot.send_message(chat_id, f"💎 <b>INFO KHUSUS VIP</b>\n\n{pesan_bcs}", parse_mode="HTML")
             success += 1
             time.sleep(0.05)
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
     bot.send_message(message.chat.id, f"✅ Broadcast VIP selesai. Berhasil: {success}")
 
 @bot.message_handler(commands=['start', 'help'])
@@ -3928,14 +3958,14 @@ def _spam_guard(chat_id):
             with open(F_SPAM_LOG, "a", encoding="utf-8") as f:
                 now_str = datetime.now(WIB).strftime('%d-%m-%Y %H:%M:%S')
                 f.write(now_str + " | " + cid + " | " + str(len(arr)) + " msgs in " + str(_SPAM_WINDOW) + "s\n")
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         try:
             bot.send_message(ADMIN_TELEGRAM_ID,
                 "🚨 <b>SPAM DETECTED!</b>\n\nUser: <code>" + cid + "</code>\nTotal: <b>" + str(len(arr)) + " pesan</b> dalam " + str(_SPAM_WINDOW) + " detik\n\nUser diblokir sementara 15 menit.",
                 parse_mode="HTML")
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         return True
     return False
 
@@ -4006,8 +4036,8 @@ def _security_health_monitor():
                     bot.send_message(ADMIN_TELEGRAM_ID,
                         "⚠️ <b>HEALTH WARNING</b>\n\nFile bermasalah:\n" + "\n".join("• " + m for m in miss),
                         parse_mode="HTML")
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
             _cleanup_blocked()
         except Exception as e:
             log_error("_security_health_monitor", e)
@@ -4034,8 +4064,8 @@ def _write_inbox(chat_id, tipe, title, body):
                     if len(all_lines) > 5000:
                         with open(F_INBOX, "w", encoding="utf-8") as f:
                             f.writelines(all_lines[-3000:])
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
     except Exception as e:
         log_error("_write_inbox", e)
 
@@ -4121,8 +4151,8 @@ def generate_real_testimonial(chat_id, resi_target):
 def loading_toast(call_id, text="⏳ Mohon tunggu sebentar, sistem sedang memproses permintaanmu..."):
     try:
         bot.answer_callback_query(call_id, text=text, show_alert=False)
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler_master(call):
@@ -4249,8 +4279,8 @@ def callback_handler_master(call):
                                 target_user_id = p[0]
                                 current_db_status = p[7].strip()
                                 break
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
                 if not target_user_id:
                     bot.answer_callback_query(call.id, text="Resi tidak ditemukan!", show_alert=True)
                     return
@@ -4268,15 +4298,20 @@ def callback_handler_master(call):
                                     if len(p) >= 11 and p[6].strip() == resi_code.strip():
                                         p_points_val = int(p[10]) if p[10].isdigit() else 0
                                         break
-                        except Exception:
-                            pass
+                        except Exception as _e:
+                            log_error("ignored", _e)
                         current_user_pts = get_user_points(target_user_id)
                         if current_user_pts >= p_points_val:
                             reduce_user_points(target_user_id, p_points_val, "Penukaran poin paket VIP")
                         else:
                             bot.answer_callback_query(call.id, text="Poin pembeli tidak cukup!", show_alert=True)
                             return
-                    update_order_status_by_resi(resi_code, "BERHASIL")
+                    _acc_ok = update_order_status_by_resi(resi_code, "BERHASIL")
+                    if not _acc_ok:
+                        if action == "apoin" and p_points_val > 0:
+                            add_user_points(target_user_id, p_points_val, "Refund: ACC gagal / sudah diproses")
+                        bot.answer_callback_query(call.id, text="Order sudah diproses di tempat lain.", show_alert=True)
+                        return
                     try:
                         auto_testi_message = generate_real_testimonial(target_user_id, resi_code)
                         bot.send_message(chat_id=GROUP_CHAT_ID, text=auto_testi_message,
@@ -4310,8 +4345,8 @@ def callback_handler_master(call):
                                     detail_paket, detail_harga = p[4], p[5]
                                     waktu_beli = f"{p[1]}, {p[3]}"
                                     break
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        log_error("ignored", _e)
                     bot.send_message(target_user_id,
                                      "🛒 <b>PakelMlbbStore:</b>\n"
                                      "🎉 <b>PEMBAYARAN ANDA TELAH DI-ACC ADMIN!</b> 🎉\n\n"
@@ -4389,7 +4424,7 @@ def callback_handler_master(call):
                     "🎰 <b>LUCKY DRAW HARIAN</b> 🎰\n\n"
                     "Kamu punya <b>1 kesempatan spin</b> hari ini!\n\n"
                     "🎁 Hadiah yang bisa didapat:\n"
-                    "• 🪙 Poin 5 – 50\n"
+                    "• 🪙 Poin 2 – 25\n"
                     "• 🎁 Diskon 5% – 10%\n"
                     "• 💎 Paket Semi-Safe GRATIS (rare!)\n\n"
                     "Klik tombol di bawah untuk spin!"
@@ -4437,8 +4472,8 @@ def callback_handler_master(call):
                 try:
                     with open(F_USER_VOUCHER, "a", encoding="utf-8") as f:
                         f.write(f"{chat_id}|DISKON{nilai}|{int(time.time())}\n")
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
                 result_text = (
                     f"🎉 <b>SELAMAT!</b> 🎉\n\n"
                     f"🎰 Hasil Spin: <b>{label}</b>\n\n"
@@ -4530,8 +4565,8 @@ def callback_handler_master(call):
                     bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text,
                                           parse_mode="HTML", reply_markup=markup,
                                           disable_web_page_preview=True)
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
                 bot.answer_callback_query(call.id, text="✅ Refreshed!")
             except Exception as e:
                 bot.answer_callback_query(call.id, text=f"Error: {e}", show_alert=True)
@@ -4620,9 +4655,10 @@ def callback_handler_master(call):
                 log_error(f"katalog_page_{part_num}", e)
             return
 
-        elif data in MASTER_PAKET:
+        elif data in get_all_paket_combined():
             loading_toast(call.id, "⏳ Menyiapkan opsi...")
-            p_name, p_price_angka, p_price_str, p_points, _ = MASTER_PAKET[data]
+            _pk = get_all_paket_combined()[data]
+            p_name, p_price_angka, p_price_str, p_points = _pk["nama"], _pk["harga"], _pk["harga_str"], _pk["poin"]
             stok = get_stock(data)
             if stok <= 0:
                 bot.answer_callback_query(call.id, text="❌ Maaf, stok paket ini habis! Tunggu restock ya 🙏", show_alert=True)
@@ -4686,8 +4722,8 @@ def callback_handler_master(call):
                                 return
                             admin_msg_id = int(p[11]) if p[11].isdigit() and int(p[11]) > 0 else None
                             break
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
             success = update_order_status_by_resi(resi_target, "CANCELLED")
             if success:
                 if admin_msg_id:
@@ -4721,12 +4757,13 @@ def callback_handler_master(call):
                 bot.answer_callback_query(call.id, text="Data tidak valid.", show_alert=True)
                 return
             action_type, paket_code = parts[1], parts[2]
-            if paket_code not in MASTER_PAKET:
+            _allp = get_all_paket_combined()
+            if paket_code not in _allp:
                 bot.answer_callback_query(call.id, text="Paket tidak ditemukan.", show_alert=True)
                 return
-            p_name, p_price_angka, p_price_str, p_points, _ = MASTER_PAKET[paket_code]
+            p_name, p_price_angka, p_price_str, p_points = _allp[paket_code]["nama"], _allp[paket_code]["harga"], _allp[paket_code]["harga_str"], _allp[paket_code]["poin"]
             tier_label, multiplier, diskon_tier = get_user_tier(chat_id)
-            resi_unik = f"PKL-MLBB-{random.randint(10000, 99999)}"
+            resi_unik = _new_unique_resi()
 
             # ==== POIN ====
             if action_type == 'poin':
@@ -4751,8 +4788,8 @@ def callback_handler_master(call):
                     )
                     try:
                         bot.delete_message(chat_id=chat_id, message_id=message_id)
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        log_error("ignored", _e)
                     bot.send_message(chat_id, pending_poin_text, reply_markup=markup_poin_inv, parse_mode="HTML")
                     # FIX v12: Notif ke Admin
                     notify_admin_new_order(chat_id, user, p_name, f"{p_points} Poin", resi_unik, "POIN")
@@ -4871,8 +4908,8 @@ def callback_handler_master(call):
                     consume_user_voucher(chat_id)
                 try:
                     bot.delete_message(chat_id=chat_id, message_id=message_id)
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
                 bot.send_message(chat_id, invoice_text, reply_markup=markup_inv,
                                  parse_mode="HTML", disable_web_page_preview=True)
                 return
@@ -4954,8 +4991,8 @@ def callback_handler_master(call):
 
                 try:
                     bot.delete_message(chat_id=chat_id, message_id=message_id)
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
 
                 try:
                     bot.send_photo(
@@ -4975,8 +5012,8 @@ def callback_handler_master(call):
                             f"Cek <code>QRIS_IMAGE_URL</code> — mungkin link invalid.",
                             parse_mode="HTML"
                         )
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        log_error("ignored", _e)
                     bot.send_message(
                         chat_id=chat_id,
                         text=invoice_caption,
@@ -5012,7 +5049,7 @@ def callback_handler_master(call):
             bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                   text=f"⭐ <b>Terima kasih rating {rating_val} bintang!</b>\nPilih ulasan:",
                                   parse_mode="HTML", reply_markup=markup_ulasan)
-            with open(f"pending_review_{chat_id}.txt", "w", encoding="utf-8") as f:
+            with open(os.path.join(DATA_DIR, f"pending_review_{chat_id}.txt"), "w", encoding="utf-8") as f:
                 f.write(f"{resi_code}|{rating_val}")
             return
 
@@ -5024,10 +5061,10 @@ def callback_handler_master(call):
             resi_c, rating_c, quick_text = parts[1], parts[2], parts[3]
             save_user_review(chat_id, rating_c, quick_text)
             try:
-                if os.path.exists(f"pending_review_{chat_id}.txt"):
-                    os.remove(f"pending_review_{chat_id}.txt")
-            except Exception:
-                pass
+                if os.path.exists(os.path.join(DATA_DIR, f"pending_review_{chat_id}.txt")):
+                    os.remove(os.path.join(DATA_DIR, f"pending_review_{chat_id}.txt"))
+            except Exception as _e:
+                log_error("ignored", _e)
             bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                   text="🎉 <b>TERIMA KASIH ATAS ULASANNYA!</b>",
                                   parse_mode="HTML")
@@ -5130,14 +5167,14 @@ def handle_text_and_reviews(message):
     if _is_blocked_temp(chat_id):
         try:
             bot.reply_to(message, "🚫 Kamu diblokir sementara. Coba lagi 15 menit.", disable_web_page_preview=True)
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         return
     if _spam_guard(chat_id):
         try:
             bot.reply_to(message, "🚨 Spam terdeteksi! Kamu diblokir 15 menit.", disable_web_page_preview=True)
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         return
     # ===== END SPAM GUARD =====
 
@@ -5216,8 +5253,8 @@ def handle_text_and_reviews(message):
                 f"💡 Cek di APK PakelStore atau bot ini.",
                 parse_mode="HTML"
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         return
     # ===== END PENDING EDIT POIN =====
     
@@ -5246,8 +5283,8 @@ def handle_text_and_reviews(message):
             )
             try:
                 log_suspicious(chat_id, user.username or user.first_name, "REDEEM_DUPLIKAT", kode)
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
             return
 
         # FIX v11: Cek spam cooldown
@@ -5276,7 +5313,7 @@ def handle_text_and_reviews(message):
         )
         return
 
-    review_flag_file = f"pending_review_{chat_id}.txt"
+    review_flag_file = os.path.join(DATA_DIR, f"pending_review_{chat_id}.txt")
     try:
         if os.path.exists(review_flag_file):
             with open(review_flag_file, "r", encoding="utf-8") as f:
@@ -5286,13 +5323,13 @@ def handle_text_and_reviews(message):
                 save_user_review(chat_id, rating_c, txt)
                 try:
                     os.remove(review_flag_file)
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
                 bot.reply_to(message, "🎉 <b>TERIMA KASIH ATAS ULASANNYA!</b>",
                              reply_markup=get_back_markup(l), parse_mode="HTML")
                 return
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
 
     # FIX v15: FULL AI GROQ — Beneran mikir, bukan template
     if AI_ENABLED:
@@ -5309,7 +5346,7 @@ def handle_text_and_reviews(message):
             log_error("ai_cs_handler", e)
 
     # Fallback CUMA kalau AI mati total
-    bot.reply_to(message, "Maaf Kak, CS sedang sibuk. Coba lagi sebentar ya 🙏",
+    bot.reply_to(message, _faq_reply(txt), parse_mode="HTML",
                  disable_web_page_preview=True)
 
 @bot.message_handler(content_types=['photo'])
@@ -5339,8 +5376,8 @@ def handle_photo(message):
             args=(message.chat.id, resi_unik, message.photo[-1].file_id, user_caption),
             daemon=True
         ).start()
-    except Exception:
-        pass
+    except Exception as _e:
+        log_error("ignored", _e)
     bot.reply_to(message,
                  f"✅ BUKTI DIUNGGAH!\nKak {user.first_name}\n"
                  f"Resi: {resi_unik}\n"
@@ -5410,7 +5447,23 @@ def cmd_apk_acc(message):
         bot.reply_to(message, "⚠️ Format: /apkacc [RESI]")
         return
     resi = args[0].strip().upper()
+    _ord = None
+    for _p in _read_all_orders():
+        if _p[6].strip().upper() == resi:
+            _ord = _p
+            break
+    _cost = 0
+    _uid = None
+    if _ord is not None and len(_ord) > 9 and _ord[9] == "POIN" and _ord[7].strip() == "PENDING":
+        _uid = _ord[0]
+        _cost = int(_ord[10]) if len(_ord) > 10 and _ord[10].isdigit() else 0
+        if get_user_points(_uid) < _cost:
+            bot.reply_to(message, "❌ Poin user tidak cukup untuk order POIN ini.")
+            return
+        reduce_user_points(_uid, _cost, "Penukaran poin paket VIP (/apkacc)")
     success = update_order_status_by_resi(resi, "BERHASIL")
+    if not success and _cost > 0:
+        add_user_points(_uid, _cost, "Refund: /apkacc gagal")
     if success:
         bot.reply_to(message, f"✅ Order <code>{resi}</code> di-ACC!", parse_mode="HTML")
     else:
@@ -5634,6 +5687,11 @@ def get_all_paket_combined():
         p['harga_str'] = "Rp " + format(p['harga'], ",").replace(",", ".")
         p['stok'] = get_stock(kode)
         hasil[kode] = p
+    for _k, _v in read_paket_override().items():
+        if _k in hasil:
+            hasil[_k]["harga"] = _v["harga"]
+            hasil[_k]["poin"] = _v["poin"]
+            hasil[_k]["harga_str"] = "Rp " + format(_v["harga"], ",").replace(",", ".")
     return hasil
 
 
@@ -5676,8 +5734,8 @@ def broadcast_restock(kode, stok_lama, stok_baru, trigger="manual"):
                     bot.send_message(chat_id, bc_text, parse_mode="HTML", disable_web_page_preview=True)
                     sukses += 1
                     time.sleep(0.05)
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
             print(f"[RESTOCK-BC] {nama_paket}: {sukses}/{len(set(users))} user")
         except FileNotFoundError:
             pass
@@ -5693,8 +5751,8 @@ def broadcast_restock(kode, stok_lama, stok_baru, trigger="manual"):
             bot.send_message(ADMIN_TELEGRAM_ID,
                 f"✅ <b>Restock BC Selesai</b>\n\n📦 {nama_paket}\n📊 {stok_lama} → {stok_baru}\n🎯 {trigger}",
                 parse_mode="HTML")
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         return True
     except Exception as e:
         log_error("broadcast_restock", e)
@@ -5780,8 +5838,8 @@ def cmd_buatpaket(message):
             if kode in _existing:
                 bot.reply_to(message, "❌ Kode <code>" + kode + "</code> udah ada!", parse_mode="HTML")
                 return
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         # ==== END VALIDASI ====
         data = {'nama': nama, 'harga': harga, 'poin': poin, 'deskripsi': deskripsi, 'kategori': kategori, 'stok': stok}
         saved, err = _atomic_add_custom_paket(kode, data)
@@ -5989,8 +6047,8 @@ def cmd_bcstok(message):
                 try:
                     broadcast_restock(kode_p, stok, stok, trigger="bcstok_all")
                     time.sleep(1)
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log_error("ignored", _e)
         threading.Thread(target=_do_bc, daemon=True).start()
         return
     all_paket = get_all_paket_combined()
@@ -6284,9 +6342,9 @@ def cmd_inboxstats(message):
             p = ln.split('|')
             if len(p) >= 2:
                 counts[p[1]] = counts.get(p[1], 0) + 1
-        text = "📬 <b>STATISTIK INBOX</b>\\n\\nTotal pesan: <b>" + str(len(lines)) + "</b>\\n\\n"
+        text = "📬 <b>STATISTIK INBOX</b>\n\nTotal pesan: <b>" + str(len(lines)) + "</b>\n\n"
         for k, v in sorted(counts.items(), key=lambda x: -x[1]):
-            text += "• " + k + ": <b>" + str(v) + "</b>\\n"
+            text += "• " + k + ": <b>" + str(v) + "</b>\n"
         bot.reply_to(message, text, parse_mode="HTML")
     except Exception as e:
         bot.reply_to(message, "Gagal: " + str(e))
@@ -6330,8 +6388,8 @@ def cmd_fixcustompaket(message):
         # Backup
         try:
             shutil.copy2(F_CUSTOM_PAKET, F_CUSTOM_PAKET + ".corruptbak")
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
         with open(F_CUSTOM_PAKET, "w", encoding="utf-8") as f:
             f.writelines(valid_rows)
         bot.reply_to(
@@ -6456,16 +6514,16 @@ def handle_custompaket_cb(call):
                 bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                     text="✏️ <b>EDIT PAKET</b>\n\nPilih paket:",
                     reply_markup=markup, parse_mode="HTML")
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
             bot.answer_callback_query(call.id)
             return
     except Exception as e:
         log_error("handle_custompaket_cb", e)
         try:
             bot.answer_callback_query(call.id, text="Error: " + str(e)[:80], show_alert=True)
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
 
 
 def handle_custom_paket_cb(call):
@@ -6527,15 +6585,15 @@ def handle_custom_paket_cb(call):
             try:
                 bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="❌ <b>DIBATALKAN</b>\n\nPaket gak jadi dihapus.", parse_mode="HTML")
                 bot.answer_callback_query(call.id, "Dibatalkan")
-            except Exception:
-                pass
+            except Exception as _e:
+                log_error("ignored", _e)
             return
     except Exception as e:
         log_error("handle_custom_paket_cb", e)
         try:
             bot.answer_callback_query(call.id, f"❌ Error: {str(e)[:80]}", show_alert=True)
-        except Exception:
-            pass
+        except Exception as _e:
+            log_error("ignored", _e)
 # FIX: Pindah polling ke dalam if __name__ biar gak auto-run saat di-import
 if __name__ == '__main__':
     try:
